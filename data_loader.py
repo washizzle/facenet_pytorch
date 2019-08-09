@@ -80,9 +80,9 @@ class TripletFaceDataset(Dataset):
         pos_img   = os.path.join(self.root_dir, str(pos_name), str(pos_id) + '.png')
         neg_img   = os.path.join(self.root_dir, str(neg_name), str(neg_id) + '.png')
         
-        anc_img   = io.imread(anc_img)
-        pos_img   = io.imread(pos_img)
-        neg_img   = io.imread(neg_img)
+        anc_img   = io.imread(anc_img, plugin='imageio')
+        pos_img   = io.imread(pos_img, plugin='imageio')
+        neg_img   = io.imread(neg_img, plugin='imageio')
 
         pos_class = torch.from_numpy(np.array([pos_class]).astype('long'))
         neg_class = torch.from_numpy(np.array([neg_class]).astype('long'))
