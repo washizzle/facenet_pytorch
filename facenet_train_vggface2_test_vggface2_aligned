@@ -2,6 +2,6 @@
 #SBATCH -p gpu
 #SBATCH -t 100:00:00
 bash $HOME/miniconda3/etc/profile.d/conda.sh
-source activate wsdartscuda9
+source activate pytorch11
 python train.py --train-root-dir=~/facenet_pytorch/datasets/vggface2_train/aligned --valid-root-dir=~/facenet_pytorch/datasets/vggface2_test/aligned --train-csv-name=~/facenet_pytorch/datasets/train_vggface2.csv --valid-csv-name=~/facenet_pytorch/datasets/test_vggface2.csv
 source deactivate
