@@ -32,7 +32,7 @@ class TripletFaceDataset(Dataset):
                 for i in p.images:
                     #print("hit line 33")
                     if i.name == image:
-                        print(i.name)
+                        #print(i.name)
                         return i
     
     @staticmethod
@@ -109,21 +109,19 @@ class TripletFaceDataset(Dataset):
             pos_id = str(pos_id) + self.format
             neg_id = str(neg_id) + self.format
             
-            print("maurice test", pos_name, anc_id, self.get_image(pos_name, anc_id))
+            #print("maurice test", pos_name, anc_id, self.get_image(pos_name, anc_id))
             
             anc_img = self.get_image(pos_name, anc_id).contents
             pos_img = self.get_image(pos_name, pos_id).contents
             neg_img = self.get_image(neg_name, neg_id).contents
             
-            anc_img = self.deserialize_image(anc_img)
-            pos_img = self.deserialize_image(pos_img)
-            neg_img = self.deserialize_image(neg_img)
-            
-            
-            
-            #anc_img   = io.imread(anc_img, plugin='imageio')
-            #pos_img   = io.imread(pos_img, plugin='imageio')
-            #neg_img   = io.imread(neg_img, plugin='imageio')
+            #anc_img = self.deserialize_image(anc_img)
+            #pos_img = self.deserialize_image(pos_img)
+            #neg_img = self.deserialize_image(neg_img)
+
+            anc_img   = io.imread(anc_img, plugin='imageio')
+            pos_img   = io.imread(pos_img, plugin='imageio')
+            neg_img   = io.imread(neg_img, plugin='imageio')
 
             pos_class = torch.from_numpy(np.array([pos_class]).astype('long'))
             neg_class = torch.from_numpy(np.array([neg_class]).astype('long'))
