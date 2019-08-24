@@ -3,5 +3,5 @@
 #SBATCH -t 100:00:00
 bash $HOME/miniconda3/etc/profile.d/conda.sh
 source activate pytorch12
-python train.py --train_format=.png --valid_format=.jpg --start-epoch=151 --pure_validation --load_pth_from=./log/20190814-221208/ --train-root-dir=/lustre2/0/wsdarts/datasets/vggface2_train/ --valid-root-dir=/lustre2/0/wsdarts/datasets/CASIA/ --train-csv-name=~/facenet_pytorch/datasets/train_vggface2.csv --valid-csv-name=~/facenet_pytorch/datasets/CASIA.csv
+python train.py --train_format=.png --valid_format=.png --start-epoch=151 --pure_validation --load_pth_from=./log/20190814-221208/ --train-root-dir=/lustre2/0/wsdarts/datasets/vggface2_train/ --valid-root-dir=/lustre2/0/wsdarts/datasets/CASIA/ --train-csv-name=~/facenet_pytorch/datasets/train_vggface2.csv --valid-csv-name=~/facenet_pytorch/datasets/CASIA.csv
 source deactivate

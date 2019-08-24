@@ -111,7 +111,7 @@ class TripletFaceDataset(Dataset):
             pos_id = str(pos_id) + self.format
             neg_id = str(neg_id) + self.format
             
-            #print("maurice test", pos_name, anc_id, self.get_image(pos_name, anc_id))
+            #print("test", pos_name, anc_id, self.get_image(pos_name, anc_id))
             
             anc_img = self.get_image(pos_name, anc_id).contents
             pos_img = self.get_image(pos_name, pos_id).contents
@@ -133,8 +133,6 @@ class TripletFaceDataset(Dataset):
             sample = {'anc_img': anc_img, 'pos_img': pos_img, 'neg_img': neg_img, 'pos_class': pos_class, 'neg_class': neg_class}
 
             if self.transform:
-                #print("sample anc_img")
-                #print(sample['anc_img'])
                 sample['anc_img'] = self.transform(sample['anc_img'])
                 sample['pos_img'] = self.transform(sample['pos_img'])
                 sample['neg_img'] = self.transform(sample['neg_img'])

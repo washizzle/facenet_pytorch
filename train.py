@@ -16,9 +16,10 @@ from utils import TripletLoss
 from models import FaceNetModel
 from data_loader import TripletFaceDataset, get_dataloader
 from pathlib import Path
+from shutil import copyfile
 
 # New idea:
-#If start-epoch != 0, a load_pth_from needs to be defined. 
+#If start-epoch != 0 and/or pure_validation is given as argument, a load_pth_from needs to be defined.
 #If no separate save_dir is defined through "save_pth_to_separate_dir", save_dir = load_pth_from.
 #If save_pth_to_separate_dir is given as argument, a new directory new_dir is created (in the standard way) and the pth file from load_pth_from directory is copied to new_dir. log_dir = new_dir,
 
@@ -35,8 +36,8 @@ parser.add_argument('--start-epoch', default = 0, type = int, metavar = 'SE',
                     help = 'start epoch (default: 0).')
 parser.add_argument('--load_pth_from', default = './log/test/', type = str,
                     help = 'directory to load .pth from. Only used when doing pure validation or when --start-epoch > 0')
-parser.add_argument('--save_pth_to', default = './log/test/', type = str,
-                    help = 'directory to save logs from current run (overrides --logs_base_dir). Only used when doing pure validation or when --start-epoch > 0')
+parser.add_argument('--save_pth_to_separate_dir', 
+                    help='only important when load_pth_from is used. Defines whether the save_dir needs to be different than the one defined in load_pth_from.', action='store_true')                    
 parser.add_argument('--pure_validation', 
                     help='Only do 1 epoch of validation. Requires .pth file to load from.', action='store_true')
 parser.add_argument('--num-epochs', default = 200, type = int, metavar = 'NE',
@@ -64,7 +65,7 @@ parser.add_argument('--valid-root-dir', default = '/run/media/hoosiki/WareHouse2
 parser.add_argument('--train-csv-name', default = './datasets/test_vggface2.csv', type = str,
                     help = 'list of training images')
 parser.add_argument('--valid-csv-name', default = './datasets/lfw.csv', type = str,
-                    help = 'list of validtion images')
+                    help = 'list of validation images')
                     
 
 args    = parser.parse_args()
@@ -75,16 +76,22 @@ save_dir = os.path.join(os.path.expanduser(args.logs_base_dir), subdir)
 log_dir = save_dir
 num_epochs = args.num_epochs
 if args.start_epoch > 0 or args.pure_validation:
-    log_dir = Path(args.load_pth_from)
-    print("log_dir: ", log_dir)
-    if not args.pure_validation:
-        save_dir = Path(args.save_pth_to)
-        print("save_dir: ", save_dir)
+    load_dir = Path(args.load_pth_from)
+    if not args.save_pth_to_separate_dir and not args.pure_validation:
+        save_dir = load_dir
+        log_dir = load_dir
     else:
+        if not os.path.isdir(log_dir):  # Create the log directory if it doesn't exist
+            os.makedirs(log_dir)
+        #copy pth file to the new directory
+        pth_file_src = Path('{}/checkpoint_epoch{}.pth'.format(load_dir, args.start_epoch-1))
+        pth_file_dest = Path('{}/checkpoint_epoch{}.pth'.format(log_dir, args.start_epoch-1))
+        copyfile(pth_file_src, pth_file_dest)
+        print("Copied .pth file to ", pth_file_dest)
+    if args.pure_validation:
         num_epochs = 1
-else:
-    log_dir = os.path.join(os.path.expanduser(args.logs_base_dir), subdir)
-
+print("log_dir: ", log_dir)
+print("save_dir: ", save_dir)
 
 def main():
     print("Start date and time: ", time.asctime(time.localtime(time.time())))
@@ -129,10 +136,8 @@ def train_valid(model, optimizer, scheduler, epoch, dataloaders, data_size, star
             model.train()
         else:
             model.eval()
-        
-        #print(dataloaders[phase])
-        dataloader_enumerator = enumerate(dataloaders[phase])
-        for batch_idx, batch_sample in dataloader_enumerator:
+
+        for batch_idx, batch_sample in enumerate(dataloaders[phase]):
             try:
                 if not 'exception' in batch_sample:
                     anc_img = batch_sample['anc_img'].to(device)
