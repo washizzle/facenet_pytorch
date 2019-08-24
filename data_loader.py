@@ -14,7 +14,8 @@ class TripletFaceDataset(Dataset):
     def __init__(self, root_dir, csv_name, num_triplets, format, transform = None):
         
         self.root_dir          = root_dir
-        self.df                = pd.read_csv(csv_name)
+        self.df                = pd.read_csv(csv_name, names=['id', 'name', 'class'], 
+                   dtype={'id': str, 'name': str, 'class': str})
         self.num_triplets      = num_triplets
         self.transform         = transform
         self.training_triplets = self.generate_triplets(self.df, self.num_triplets)
@@ -103,6 +104,7 @@ class TripletFaceDataset(Dataset):
             pos_img   = os.path.join(self.root_dir, str(pos_name), str(pos_id) + self.format)
             neg_img   = os.path.join(self.root_dir, str(neg_name), str(neg_id) + self.format)
             
+            #print("line 107 anc_img: ", anc_img)
             keep = {anc_img, pos_img, neg_img}
             
             anc_id = str(anc_id) + self.format
@@ -126,9 +128,13 @@ class TripletFaceDataset(Dataset):
             pos_class = torch.from_numpy(np.array([pos_class]).astype('long'))
             neg_class = torch.from_numpy(np.array([neg_class]).astype('long'))
             
+            #print("anc_img: ", anc_img)
+            
             sample = {'anc_img': anc_img, 'pos_img': pos_img, 'neg_img': neg_img, 'pos_class': pos_class, 'neg_class': neg_class}
 
             if self.transform:
+                #print("sample anc_img")
+                #print(sample['anc_img'])
                 sample['anc_img'] = self.transform(sample['anc_img'])
                 sample['pos_img'] = self.transform(sample['pos_img'])
                 sample['neg_img'] = self.transform(sample['neg_img'])

@@ -131,3 +131,5 @@ datasets/vggface2_train/
 datasets/vggface2_test/
 datasets/CASIA/
 datasets/facenet_align_lfw
+datasets/facenet_align_CASIA
+datasets/omniglot/

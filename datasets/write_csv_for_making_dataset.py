@@ -29,6 +29,8 @@ elif which_dataset == 2:
     root_dir = "~/facenet_pytorch/datasets/lfw"
 elif which_dataset == 3:
     root_dir = "./CASIA/CASIA-maxpy-clean"
+elif which_dataset == 4:
+    root_dir = "/lustre2/0/wsdarts/datasets/omniglot_1_folder"
 else:
     root_dir = "/run/media/hoosiki/WareHouse2/home/mtb/datasets/my_pictures/my_pictures_mtcnnpy_182"
 
@@ -89,6 +91,8 @@ elif which_dataset == 2:
     df.to_csv("valid_lfw.csv", index = False)
 elif which_dataset == 3:
     df.to_csv("CASIA.csv", index = False)
+elif which_dataset == 4:
+    df.to_csv("omniglot_1_folder.csv", index = False)
 else:
     df.to_csv("my_pictures.csv", index = False)
 
