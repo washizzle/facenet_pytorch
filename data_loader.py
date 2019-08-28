@@ -38,7 +38,7 @@ class TripletFaceDataset(Dataset):
     
     @staticmethod
     def generate_triplets(df, num_triplets):
-        
+        #dictionary to keep track of which images belong to which "faces":
         def make_dictionary_for_face_class(df):
 
             '''
@@ -88,12 +88,6 @@ class TripletFaceDataset(Dataset):
                              pos_class, neg_class, pos_name, neg_name])
         
         return triplets
-    
-    @staticmethod
-    def deserialize_image(image_bytes):
-        deserialized_bytes = np.frombuffer(image_bytes, dtype=np.int8)
-        deserialized_x = np.reshape(deserialized_bytes, newshape=(250, 250))
-        return deserialized_x
     
     def __getitem__(self, idx):
         keep = {}
@@ -180,7 +174,9 @@ def get_dataloader(train_root_dir,     valid_root_dir,
     dataloaders = {
         x: torch.utils.data.DataLoader(face_dataset[x], batch_size = batch_size, shuffle = False, num_workers = num_workers)
         for x in ['train', 'valid']}
-    
+    #dataloaders = {
+    #    x: face_dataset[x] 
+    #    for x in ['train', 'valid']}
     data_size = {x: len(face_dataset[x]) for x in ['train', 'valid']}
 
     return dataloaders, data_size

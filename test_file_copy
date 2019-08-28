@@ -1,6 +1,0 @@
-#!/bin/bash
-#SBATCH -p gpu_short
-bash $HOME/miniconda3/etc/profile.d/conda.sh
-source activate wsdartscuda9
-python test_filecopy.py
-source deactivate

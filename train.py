@@ -18,7 +18,7 @@ from data_loader import TripletFaceDataset, get_dataloader
 from pathlib import Path
 from shutil import copyfile
 
-# New idea:
+
 #If start-epoch != 0 and/or pure_validation is given as argument, a load_pth_from needs to be defined.
 #If no separate save_dir is defined through "save_pth_to_separate_dir", save_dir = load_pth_from.
 #If save_pth_to_separate_dir is given as argument, a new directory new_dir is created (in the standard way) and the pth file from load_pth_from directory is copied to new_dir. log_dir = new_dir,
@@ -137,8 +137,10 @@ def train_valid(model, optimizer, scheduler, epoch, dataloaders, data_size, star
         else:
             model.eval()
 
+        #for batch_idx in range(0, data_size[phase], 1):
         for batch_idx, batch_sample in enumerate(dataloaders[phase]):
             try:
+                #batch_sample = dataloaders[phase][batch_idx]
                 if not 'exception' in batch_sample:
                     anc_img = batch_sample['anc_img'].to(device)
                     pos_img = batch_sample['pos_img'].to(device)
