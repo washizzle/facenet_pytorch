@@ -12,6 +12,7 @@ class FaceNetModel(nn.Module):
         self.embedding_size   = embedding_size
         self.model.fc         = nn.Linear(2048*3*3, self.embedding_size)
         self.model.classifier = nn.Linear(self.embedding_size, num_classes)
+        self.model.upsample   = nn.Upsample(size=(182,182), mode='bilinear')
     
     
     def l2_norm(self, input):
@@ -26,6 +27,8 @@ class FaceNetModel(nn.Module):
     
     
     def forward(self, x):
+        x = self.model.upsample(x)
+        # print("shape before conv1: ", x.shape)
         x = self.model.conv1(x)
         x = self.model.bn1(x)
         x = self.model.relu(x)
@@ -35,6 +38,7 @@ class FaceNetModel(nn.Module):
         x = self.model.layer3(x)
         x = self.model.layer4(x)
         x = x.view(x.size(0), -1)
+        # print("shape before fc: ", x.shape)
         x = self.model.fc(x)
         
         self.features = self.l2_norm(x)

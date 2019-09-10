@@ -8,25 +8,39 @@ from torchvision import transforms
 from torch.utils.data import Dataset
 import image_pb2
 from pathlib import Path
+import cv2
+from MNIST_color import MNISTColor
 
 class TripletFaceDataset(Dataset):
 
-    def __init__(self, root_dir, csv_name, num_triplets, format, transform = None):
+    def __init__(self, root_dir, csv_name, num_triplets, format, dataset_depth, use_torchvision=False, transform = None):
         
         self.root_dir          = root_dir
-        self.df                = pd.read_csv(csv_name, names=['id', 'name', 'class'], 
+        self.df                = pd.read_csv(csv_name, header=0, names=['id', 'name', 'class'], 
                    dtype={'id': str, 'name': str, 'class': str})
         self.num_triplets      = num_triplets
         self.transform         = transform
         self.training_triplets = self.generate_triplets(self.df, self.num_triplets)
+        self.dataset_depth     = dataset_depth
         self.format            = format
+        self.use_torchvision   = use_torchvision
+        self.dataset_name      = os.path.basename(os.path.dirname(root_dir)) #fix
+        self.dataset           = None
+        if use_torchvision:
+            if self.dataset_name == 'mnist':
+                train_val = os.path.basename(root_dir)
+                self.dataset = MNISTColor(os.path.join(root_dir), train='train'==train_val,
+                                transform=data_transforms[train_val], target_transform=None,
+                                download=True, dataset_depth=dataset_depth[train_val])
+                    
     
     def get_image(self, person, image):
         for person_file in os.listdir(self.root_dir):
             #print("hit line 25")
-            if os.path.isfile(Path(self.root_dir+person_file)) and person_file == person+".pid":
+            person_path = os.path.join(self.root_dir, person_file)
+            if os.path.isfile(person_path) and person_file == person+".pid":
                 #print("hit line 27")
-                f = open(Path(self.root_dir+person_file), "rb")
+                f = open(person_path, "rb")
                 p = image_pb2.Person()
                 p.ParseFromString(f.read())
                 f.close()
@@ -35,7 +49,7 @@ class TripletFaceDataset(Dataset):
                     if i.name == image:
                         #print(i.name)
                         return i
-    
+        raise Exception("pid file not found. Variables: image: ", image, ", person: ", person)
     @staticmethod
     def generate_triplets(df, num_triplets):
         #dictionary to keep track of which images belong to which "faces":
@@ -94,30 +108,45 @@ class TripletFaceDataset(Dataset):
         try:
             anc_id, pos_id, neg_id, pos_class, neg_class, pos_name, neg_name = self.training_triplets[idx]
             
-            anc_img   = os.path.join(self.root_dir, str(pos_name), str(anc_id) + self.format)
-            pos_img   = os.path.join(self.root_dir, str(pos_name), str(pos_id) + self.format)
-            neg_img   = os.path.join(self.root_dir, str(neg_name), str(neg_id) + self.format)
+            #anc_img   = os.path.join(self.root_dir, str(pos_name), str(anc_id) + self.format)
+            #pos_img   = os.path.join(self.root_dir, str(pos_name), str(pos_id) + self.format)
+            #neg_img   = os.path.join(self.root_dir, str(neg_name), str(neg_id) + self.format)
             
             #print("line 107 anc_img: ", anc_img)
-            keep = {anc_img, pos_img, neg_img}
-            
-            anc_id = str(anc_id) + self.format
-            pos_id = str(pos_id) + self.format
-            neg_id = str(neg_id) + self.format
-            
-            #print("test", pos_name, anc_id, self.get_image(pos_name, anc_id))
-            
-            anc_img = self.get_image(pos_name, anc_id).contents
-            pos_img = self.get_image(pos_name, pos_id).contents
-            neg_img = self.get_image(neg_name, neg_id).contents
-            
-            #anc_img = self.deserialize_image(anc_img)
-            #pos_img = self.deserialize_image(pos_img)
-            #neg_img = self.deserialize_image(neg_img)
+            anc_img, pos_img, neg_img = None, None, None
+            if not self.use_torchvision:
+                anc_id = str(anc_id) + self.format
+                pos_id = str(pos_id) + self.format
+                neg_id = str(neg_id) + self.format
+                keep = {'anc_id': anc_id, 'pos_id': pos_id, 'neg_id': neg_id, 'pos_name': pos_name, 'neg_name': neg_name}
+                
+                anc_img = self.get_image(pos_name, anc_id).contents
+                pos_img = self.get_image(pos_name, pos_id).contents
+                neg_img = self.get_image(neg_name, neg_id).contents            
 
-            anc_img   = io.imread(anc_img, plugin='imageio')
-            pos_img   = io.imread(pos_img, plugin='imageio')
-            neg_img   = io.imread(neg_img, plugin='imageio')
+                anc_img   = io.imread(anc_img, plugin='imageio')
+                pos_img   = io.imread(pos_img, plugin='imageio')
+                neg_img   = io.imread(neg_img, plugin='imageio')
+            #else if dataset is mnist    
+            elif self.dataset_name == 'mnist':
+                anc_img = self.dataset.data[anc_id]
+                pos_img = self.dataset.data[pos_id]
+                neg_img = self.dataset.data[neg_id]
+                anc_img = Image.fromarray(anc_img.numpy(), mode='L')
+                pos_img = Image.fromarray(pos_img.numpy(), mode='L')
+                neg_img = Image.fromarray(neg_img.numpy(), mode='L')
+                if self.dataset_depth == 1:
+                    anc_img = np.asarray(anc_img)
+                    pos_img = np.asarray(pos_img)
+                    neg_img = np.asarray(neg_img)
+                    #anc_img = cv2.cvtColor(anc_img, cv2.COLOR_GRAY2RGB)
+                    #pos_img = cv2.cvtColor(pos_img, cv2.COLOR_GRAY2RGB)
+                    #neg_img = cv2.cvtColor(neg_img, cv2.COLOR_GRAY2RGB)
+            
+            if self.dataset_depth==1:
+                anc_img = cv2.cvtColor(anc_img, cv2.COLOR_GRAY2RGB)
+                pos_img = cv2.cvtColor(pos_img, cv2.COLOR_GRAY2RGB)
+                neg_img = cv2.cvtColor(neg_img, cv2.COLOR_GRAY2RGB)
 
             pos_class = torch.from_numpy(np.array([pos_class]).astype('long'))
             neg_class = torch.from_numpy(np.array([neg_class]).astype('long'))
@@ -146,29 +175,37 @@ def get_dataloader(train_root_dir,     valid_root_dir,
                    train_csv_name,     valid_csv_name, 
                    num_train_triplets, num_valid_triplets, 
                    batch_size,         num_workers,
-                   train_format,       valid_format):
+                   train_format,       valid_format,
+                   train_dataset_depth,val_dataset_depth,
+                   train_torchvision,  val_torchvision):
     
     data_transforms = {
         'train': transforms.Compose([
             transforms.ToPILImage(),
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
-            transforms.Normalize(mean = [0.5, 0.5, 0.5], std = [0.5, 0.5, 0.5])]),
+            transforms.Normalize(mean = [0.5, 0.5, 0.5], std = [0.5, 0.5, 0.5])
+            ]),
         'valid': transforms.Compose([
             transforms.ToPILImage(),
             transforms.ToTensor(),
-            transforms.Normalize(mean = [0.5, 0.5, 0.5], std = [0.5, 0.5, 0.5])])}
+            transforms.Normalize(mean = [0.5, 0.5, 0.5], std = [0.5, 0.5, 0.5])
+            ])}
 
     face_dataset = {
         'train' : TripletFaceDataset(root_dir     = train_root_dir,
                                      csv_name     = train_csv_name,
                                      num_triplets = num_train_triplets,
                                      format       = train_format,
+                                     dataset_depth= train_dataset_depth,
+                                     use_torchvision = train_torchvision,
                                      transform    = data_transforms['train']),
         'valid' : TripletFaceDataset(root_dir     = valid_root_dir,
                                      csv_name     = valid_csv_name,
                                      num_triplets = num_valid_triplets,
                                      format       = valid_format,
+                                     dataset_depth= val_dataset_depth,
+                                     use_torchvision = val_torchvision,
                                      transform    = data_transforms['valid'])}
 
     dataloaders = {

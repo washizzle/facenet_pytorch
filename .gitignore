@@ -133,3 +133,5 @@ datasets/CASIA/
 datasets/facenet_align_lfw
 datasets/facenet_align_CASIA
 datasets/omniglot/
+temp/
+*.tgz

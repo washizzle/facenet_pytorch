@@ -1,0 +1,7 @@
+#!/bin/bash
+#SBATCH -p gpu
+#SBATCH -t 15:00:00
+bash $HOME/miniconda3/etc/profile.d/conda.sh
+source activate pytorch11
+python train.py --num-classes=487 --train_dataset_depth=1 --val_dataset_depth=1 --valid_format=.png --train-root-dir=/lustre2/0/wsdarts/datasets/omniglot_1_folder_splits/train/ --valid-root-dir=/lustre2/0/wsdarts/datasets/omniglot_1_folder_splits/val/ --train-csv-name=~/facenet_pytorch/datasets/omniglot_train_1_folder.csv --valid-csv-name=~/facenet_pytorch/datasets/omniglot_val_1_folder.csv
+source deactivate

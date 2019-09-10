@@ -18,7 +18,7 @@ from data_loader import TripletFaceDataset, get_dataloader
 from pathlib import Path
 from shutil import copyfile
 
-
+#val==valid==validation
 #If start-epoch != 0 and/or pure_validation is given as argument, a load_pth_from needs to be defined.
 #If no separate save_dir is defined through "save_pth_to_separate_dir", save_dir = load_pth_from.
 #If save_pth_to_separate_dir is given as argument, a new directory new_dir is created (in the standard way) and the pth file from load_pth_from directory is copied to new_dir. log_dir = new_dir,
@@ -26,6 +26,10 @@ from shutil import copyfile
 
 parser = argparse.ArgumentParser(description = 'Face Recognition using Triplet Loss')
 
+parser.add_argument('--train_dataset_depth', default = 3, type = int,
+                    help = 'Defines depth of the images in the train dataset. E.g. Grayscale = 1 and rgb = 3 ')
+parser.add_argument('--val_dataset_depth', default = 3, type = int,
+                    help = 'Defines depth of the images in the validation dataset. E.g. Grayscale = 1 and rgb = 3 ')                    
 parser.add_argument('--train_format', type=str, 
                     help='Format of images for training set', default='.png')
 parser.add_argument('--valid_format', type=str, 
@@ -66,15 +70,22 @@ parser.add_argument('--train-csv-name', default = './datasets/test_vggface2.csv'
                     help = 'list of training images')
 parser.add_argument('--valid-csv-name', default = './datasets/lfw.csv', type = str,
                     help = 'list of validation images')
+parser.add_argument('--train_torchvision', 
+                    help='Use torchvision dataset for training.', action='store_true')
+parser.add_argument('--val_torchvision',
+                    help='Use torchvision dataset for validation.', action='store_true')                   
                     
-
+#global variables
 args    = parser.parse_args()
 device  = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 l2_dist = PairwiseDistance(2)
+num_epochs = args.num_epochs
+
+#add logging and checkpoints
 subdir = datetime.strftime(datetime.now(), '%Y%m%d-%H%M%S')
 save_dir = os.path.join(os.path.expanduser(args.logs_base_dir), subdir)
 log_dir = save_dir
-num_epochs = args.num_epochs
+
 if args.start_epoch > 0 or args.pure_validation:
     load_dir = Path(args.load_pth_from)
     if not args.save_pth_to_separate_dir and not args.pure_validation:
@@ -96,6 +107,8 @@ print("save_dir: ", save_dir)
 def main():
     print("Start date and time: ", time.asctime(time.localtime(time.time())))
     print("arguments: ", args)
+    
+    #load model
     model     = FaceNetModel(embedding_size = args.embedding_size, num_classes = args.num_classes).to(device)
     optimizer = optim.Adam(model.parameters(), lr = args.learning_rate)
     scheduler = lr_scheduler.StepLR(optimizer, step_size = 50, gamma = 0.1)
@@ -107,17 +120,24 @@ def main():
         checkpoint = torch.load('{}/checkpoint_epoch{}.pth'.format(log_dir, args.start_epoch-1))
         model.load_state_dict(checkpoint['state_dict'])
     
+    #if args.torchvision_dataset:   #create csv
+    #    dataset_path = os.path.join(os.path.expanduser(datasets_path), args.dataset_name)
+    #    dataloaders, dataset_sizes, num_classes = load_torchvision_data(args.dataset_name, dataset_path, data_transforms, dataset_depth)
+    
     for epoch in range(args.start_epoch, num_epochs + args.start_epoch):
         t = time.time()
         if not args.pure_validation:
             print(80 * '=')
             print('Epoch [{}/{}]'.format(epoch, num_epochs + args.start_epoch - 1))
+        # load data (every epoch)
         data_loaders, data_size = get_dataloader(args.train_root_dir,     args.valid_root_dir,
                                                  args.train_csv_name,     args.valid_csv_name,
                                                  args.num_train_triplets, args.num_valid_triplets,   
                                                  args.batch_size,         args.num_workers,
-                                                 args.train_format,       args.valid_format)
-
+                                                 args.train_format,       args.valid_format,
+                                                 args.train_dataset_depth,args.val_dataset_depth,
+                                                 args.train_torchvision,  args.val_torchvision)
+        # training and validation
         train_valid(model, optimizer, scheduler, epoch, data_loaders, data_size, t)
         print("duration of epoch ", epoch, ": ", time.time()-t, " seconds")
     print(80 * '=')
@@ -139,6 +159,7 @@ def train_valid(model, optimizer, scheduler, epoch, dataloaders, data_size, star
 
         #for batch_idx in range(0, data_size[phase], 1):
         for batch_idx, batch_sample in enumerate(dataloaders[phase]):
+            #print("batch_idx:", batch_idx)
             try:
                 #batch_sample = dataloaders[phase][batch_idx]
                 if not 'exception' in batch_sample:
@@ -200,7 +221,7 @@ def train_valid(model, optimizer, scheduler, epoch, dataloaders, data_size, star
             except:
                 #traceback.print_exc()
                 print("traceback: ", traceback.format_exc())
-                print("something went wrong with batch_idx: ", batch_idx, ", batch_sample:", batch_sample, ", neg_img batch_sample: ", batch_sample['neg_img'])
+                print("something went wrong with batch_idx: ", batch_idx, ", batch_sample:", batch_sample, ", neg_img size: ", batch_sample['neg_img'].shape, ", pos_img size: ", batch_sample['pos_img'].shape, ", anc_img size: ", batch_sample['anc_img'].shape)
   
         avg_triplet_loss = triplet_loss_sum / data_size[phase]
         labels           = np.array([sublabel for label in labels for sublabel in label])
