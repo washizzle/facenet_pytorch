@@ -136,7 +136,8 @@ def main():
                                                  args.batch_size,         args.num_workers,
                                                  args.train_format,       args.valid_format,
                                                  args.train_dataset_depth,args.val_dataset_depth,
-                                                 args.train_torchvision,  args.val_torchvision)
+                                                 args.train_torchvision,  args.val_torchvision,
+                                                 224,                     224)
         # training and validation
         train_valid(model, optimizer, scheduler, epoch, data_loaders, data_size, t)
         print("duration of epoch ", epoch, ": ", time.time()-t, " seconds")

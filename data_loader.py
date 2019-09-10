@@ -30,8 +30,8 @@ class TripletFaceDataset(Dataset):
             if self.dataset_name == 'mnist':
                 train_val = os.path.basename(root_dir)
                 self.dataset = MNISTColor(os.path.join(root_dir), train='train'==train_val,
-                                transform=data_transforms[train_val], target_transform=None,
-                                download=True, dataset_depth=dataset_depth[train_val])
+                                transform=transform, target_transform=None,
+                                download=True, dataset_depth=dataset_depth)
                     
     
     def get_image(self, person, image):
@@ -177,21 +177,49 @@ def get_dataloader(train_root_dir,     valid_root_dir,
                    batch_size,         num_workers,
                    train_format,       valid_format,
                    train_dataset_depth,val_dataset_depth,
-                   train_torchvision,  val_torchvision):
-    
-    data_transforms = {
-        'train': transforms.Compose([
+                   train_torchvision,  val_torchvision,
+                   train_input_size,   val_input_size):
+    data_transforms = {'train': None, 'valid': None}
+    if train_torchvision: 
+        data_transforms['train'] = transforms.Compose([
+            transforms.RandomResizedCrop(train_input_size),
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+        ])
+    else:
+        data_transforms['train'] = transforms.Compose([
             transforms.ToPILImage(),
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
             transforms.Normalize(mean = [0.5, 0.5, 0.5], std = [0.5, 0.5, 0.5])
-            ]),
-        'valid': transforms.Compose([
+        ])
+    if val_torchvision:
+        data_transforms['valid'] = transforms.Compose([
+            transforms.Resize(val_input_size),
+            transforms.CenterCrop(val_input_size),
+            transforms.ToTensor(),
+            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+        ])
+    else:
+        data_transforms['valid'] = transforms.Compose([
             transforms.ToPILImage(),
             transforms.ToTensor(),
             transforms.Normalize(mean = [0.5, 0.5, 0.5], std = [0.5, 0.5, 0.5])
-            ])}
-
+        ])
+    #data_transforms = {
+    #    'train': transforms.Compose([
+    #        transforms.ToPILImage(),
+    #        transforms.RandomHorizontalFlip(),
+    #        transforms.ToTensor(),
+    #        transforms.Normalize(mean = [0.5, 0.5, 0.5], std = [0.5, 0.5, 0.5])
+    #        ]),
+    #    'valid': transforms.Compose([
+    #        transforms.ToPILImage(),
+    #        transforms.ToTensor(),
+    #        transforms.Normalize(mean = [0.5, 0.5, 0.5], std = [0.5, 0.5, 0.5])
+    #        ])}
+    
     face_dataset = {
         'train' : TripletFaceDataset(root_dir     = train_root_dir,
                                      csv_name     = train_csv_name,
