@@ -10,6 +10,7 @@ import image_pb2
 from pathlib import Path
 import cv2
 from MNIST_color import MNISTColor
+from PIL import Image
 
 class TripletFaceDataset(Dataset):
 
@@ -106,6 +107,7 @@ class TripletFaceDataset(Dataset):
     def __getitem__(self, idx):
         keep = {}
         try:
+            print("first idx print: ", idx)
             anc_id, pos_id, neg_id, pos_class, neg_class, pos_name, neg_name = self.training_triplets[idx]
             
             #anc_img   = os.path.join(self.root_dir, str(pos_name), str(anc_id) + self.format)
@@ -127,26 +129,50 @@ class TripletFaceDataset(Dataset):
                 anc_img   = io.imread(anc_img, plugin='imageio')
                 pos_img   = io.imread(pos_img, plugin='imageio')
                 neg_img   = io.imread(neg_img, plugin='imageio')
+                print("anc_img.shape: ", anc_img.shape)
+                
+                if self.dataset_depth==1:
+                    anc_img = cv2.cvtColor(anc_img, cv2.COLOR_GRAY2RGB)
+                    pos_img = cv2.cvtColor(pos_img, cv2.COLOR_GRAY2RGB)
+                    neg_img = cv2.cvtColor(neg_img, cv2.COLOR_GRAY2RGB)
+                else:
+                    if len(anc_img.shape) < 3:
+                        anc_img = cv2.cvtColor(anc_img, cv2.COLOR_GRAY2RGB)
+                    if len(pos_img.shape) < 3:
+                        pos_img = cv2.cvtColor(pos_img, cv2.COLOR_GRAY2RGB)
+                    if len(neg_img.shape) < 3:
+                        neg_img = cv2.cvtColor(neg_img, cv2.COLOR_GRAY2RGB)
             #else if dataset is mnist    
             elif self.dataset_name == 'mnist':
-                anc_img = self.dataset.data[anc_id]
-                pos_img = self.dataset.data[pos_id]
-                neg_img = self.dataset.data[neg_id]
-                anc_img = Image.fromarray(anc_img.numpy(), mode='L')
-                pos_img = Image.fromarray(pos_img.numpy(), mode='L')
-                neg_img = Image.fromarray(neg_img.numpy(), mode='L')
-                if self.dataset_depth == 1:
-                    anc_img = np.asarray(anc_img)
-                    pos_img = np.asarray(pos_img)
-                    neg_img = np.asarray(neg_img)
-                    #anc_img = cv2.cvtColor(anc_img, cv2.COLOR_GRAY2RGB)
-                    #pos_img = cv2.cvtColor(pos_img, cv2.COLOR_GRAY2RGB)
-                    #neg_img = cv2.cvtColor(neg_img, cv2.COLOR_GRAY2RGB)
+                print("idx: ", idx)
+                #print(", anc_id: ", anc_id)
+                #print(", self.dataset.targets: ", self.dataset.targets)
+                #print(", self.dataset.data: ", self.dataset.data.item())
+                #print(", self.dataset.targets[anc_id]: ", self.dataset.targets.item()[anc_id])
+                #print("self.dataset[int(anc_id)]: ", self.dataset[int(anc_id)])
+                #print(", self.dataset.data[587]: ", self.dataset.data[587])
+                #print(", self.dataset.data.shape: ", self.dataset.data.shape)
+                #print(", self.dataset.data[anc_id].shape: ", self.dataset.data[anc_id].shape)
+                #print(", self.dataset.data[anc_id]: ", self.dataset.data.item()[anc_id])
+                anc_dict = self.dataset[int(anc_id)]
+                pos_dict = self.dataset[int(pos_id)]
+                neg_dict = self.dataset[int(neg_id)]
+                anc_img = anc_dict["image"]
+                pos_img = anc_dict["image"]
+                neg_img = anc_dict["image"]
+                #print("anc_img: ", anc_img)
+            #    anc_img = Image.fromarray(anc_img.numpy(), mode='L')
+            #    pos_img = Image.fromarray(pos_img.numpy(), mode='L')
+            #    neg_img = Image.fromarray(neg_img.numpy(), mode='L')
+            #    if self.dataset_depth == 1:
+            #        anc_img = np.asarray(anc_img)
+            #        pos_img = np.asarray(pos_img)
+            #        neg_img = np.asarray(neg_img)                    
             
-            if self.dataset_depth==1:
-                anc_img = cv2.cvtColor(anc_img, cv2.COLOR_GRAY2RGB)
-                pos_img = cv2.cvtColor(pos_img, cv2.COLOR_GRAY2RGB)
-                neg_img = cv2.cvtColor(neg_img, cv2.COLOR_GRAY2RGB)
+            #if self.dataset_depth==1:
+            #    anc_img = cv2.cvtColor(anc_img, cv2.COLOR_GRAY2RGB)
+            #    pos_img = cv2.cvtColor(pos_img, cv2.COLOR_GRAY2RGB)
+            #    neg_img = cv2.cvtColor(neg_img, cv2.COLOR_GRAY2RGB)
 
             pos_class = torch.from_numpy(np.array([pos_class]).astype('long'))
             neg_class = torch.from_numpy(np.array([neg_class]).astype('long'))
@@ -155,7 +181,7 @@ class TripletFaceDataset(Dataset):
             
             sample = {'anc_img': anc_img, 'pos_img': pos_img, 'neg_img': neg_img, 'pos_class': pos_class, 'neg_class': neg_class}
 
-            if self.transform:
+            if not self.use_torchvision and self.transform:
                 sample['anc_img'] = self.transform(sample['anc_img'])
                 sample['pos_img'] = self.transform(sample['pos_img'])
                 sample['neg_img'] = self.transform(sample['neg_img'])
@@ -178,10 +204,12 @@ def get_dataloader(train_root_dir,     valid_root_dir,
                    train_format,       valid_format,
                    train_dataset_depth,val_dataset_depth,
                    train_torchvision,  val_torchvision,
-                   train_input_size,   val_input_size):
+                   train_input_size,   val_input_size,
+                   pure_validation):
     data_transforms = {'train': None, 'valid': None}
     if train_torchvision: 
         data_transforms['train'] = transforms.Compose([
+            transforms.ToPILImage(),#extra, not recommended to keep here
             transforms.RandomResizedCrop(train_input_size),
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
@@ -190,13 +218,15 @@ def get_dataloader(train_root_dir,     valid_root_dir,
     else:
         data_transforms['train'] = transforms.Compose([
             transforms.ToPILImage(),
+            transforms.RandomResizedCrop(train_input_size),#extra, not recommended to keep here
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
             transforms.Normalize(mean = [0.5, 0.5, 0.5], std = [0.5, 0.5, 0.5])
         ])
     if val_torchvision:
         data_transforms['valid'] = transforms.Compose([
-            transforms.Resize(val_input_size),
+            transforms.ToPILImage(),#extra, not recommended to keep here
+            transforms.Resize((val_input_size, val_input_size)),
             transforms.CenterCrop(val_input_size),
             transforms.ToTensor(),
             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
@@ -204,6 +234,8 @@ def get_dataloader(train_root_dir,     valid_root_dir,
     else:
         data_transforms['valid'] = transforms.Compose([
             transforms.ToPILImage(),
+            transforms.Resize((val_input_size, val_input_size)),#extra, not recommended to keep here
+            transforms.CenterCrop(val_input_size),#extra, not recommended to keep here
             transforms.ToTensor(),
             transforms.Normalize(mean = [0.5, 0.5, 0.5], std = [0.5, 0.5, 0.5])
         ])
@@ -219,29 +251,49 @@ def get_dataloader(train_root_dir,     valid_root_dir,
     #        transforms.ToTensor(),
     #        transforms.Normalize(mean = [0.5, 0.5, 0.5], std = [0.5, 0.5, 0.5])
     #        ])}
-    
     face_dataset = {
-        'train' : TripletFaceDataset(root_dir     = train_root_dir,
-                                     csv_name     = train_csv_name,
-                                     num_triplets = num_train_triplets,
-                                     format       = train_format,
-                                     dataset_depth= train_dataset_depth,
-                                     use_torchvision = train_torchvision,
-                                     transform    = data_transforms['train']),
-        'valid' : TripletFaceDataset(root_dir     = valid_root_dir,
+        'train': None, 
+        'valid': TripletFaceDataset(root_dir     = valid_root_dir,
                                      csv_name     = valid_csv_name,
                                      num_triplets = num_valid_triplets,
                                      format       = valid_format,
                                      dataset_depth= val_dataset_depth,
                                      use_torchvision = val_torchvision,
                                      transform    = data_transforms['valid'])}
-
+    data_size = {
+        'train': None,
+        'valid': len(face_dataset['valid'])}
+    if not pure_validation:
+        face_dataset['train'] = TripletFaceDataset(root_dir     = train_root_dir,
+                                     csv_name     = train_csv_name,
+                                     num_triplets = num_train_triplets,
+                                     format       = train_format,
+                                     dataset_depth= train_dataset_depth,
+                                     use_torchvision = train_torchvision,
+                                     transform    = data_transforms['train'])
+        data_size['train'] = len(face_dataset['train'])
+    #face_dataset = {
+    #    'train' : TripletFaceDataset(root_dir     = train_root_dir,
+    #                                 csv_name     = train_csv_name,
+    #                                 num_triplets = num_train_triplets,
+    #                                 format       = train_format,
+    #                                 dataset_depth= train_dataset_depth,
+    #                                 use_torchvision = train_torchvision,
+    #                                 transform    = data_transforms['train']),
+    #    'valid' : TripletFaceDataset(root_dir     = valid_root_dir,
+    #                                 csv_name     = valid_csv_name,
+    #                                 num_triplets = num_valid_triplets,
+    #                                 format       = valid_format,
+    #                                 dataset_depth= val_dataset_depth,
+    #                                 use_torchvision = val_torchvision,
+    #                                 transform    = data_transforms['valid'])}
+    #data_size = {x: len(face_dataset[x]) for x in ['train', 'valid']}
     dataloaders = {
         x: torch.utils.data.DataLoader(face_dataset[x], batch_size = batch_size, shuffle = False, num_workers = num_workers)
         for x in ['train', 'valid']}
     #dataloaders = {
     #    x: face_dataset[x] 
     #    for x in ['train', 'valid']}
-    data_size = {x: len(face_dataset[x]) for x in ['train', 'valid']}
+    
 
     return dataloaders, data_size

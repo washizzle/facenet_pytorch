@@ -12,13 +12,15 @@ from pathlib import Path
 #creation of csvs, which is why we made it possible to choose whether we are dealing with such a dataset 
 #or not
 
-which_dataset = 6
+which_dataset = 9
 # omniglot, all images are put into 1 folder
-omniglot_1_folder = True
+omniglot_1_folder = False
 # (UNTESTED) omniglot, separate (alphabet) folders. Having this on True while omniglot_1_folder is also 
 #True causes it to behave as if omniglot_separate_folders = False.         
-omniglot_separate_folders = False       
-
+omniglot_separate_folders = True
+#dataset_name: only used when omniglot_separate_folders = true and omniglot_1_folder = false
+       
+alphabet_csv_path = ""
 if   which_dataset == 0:
     root_path = "~/facenet_pytorch/datasets/vggface2_train/aligned/"
 elif which_dataset == 1:
@@ -33,6 +35,15 @@ elif which_dataset == 5:
     root_path = "/lustre2/0/wsdarts/jpg_datasets/omniglot_1_folder_splits/train"
 elif which_dataset == 6:
     root_path = "/lustre2/0/wsdarts/jpg_datasets/omniglot_1_folder_splits/val"
+elif which_dataset == 7:
+    root_path = "/scratch/nodespecific/int1/mhouben/inaturalist_2019/train_val2019/"
+    alphabet_csv_path = "./inaturalist2019_alphabet_csvs/train_val/"
+elif which_dataset == 8:
+    root_path = "/scratch/nodespecific/int1/mhouben/inaturalist_2019/val/"
+    alphabet_csv_path = "./inaturalist2019_alphabet_csvs/val/"
+elif which_dataset == 9:
+    root_path = "/scratch/nodespecific/int1/mhouben/inaturalist_2019/train/"
+    alphabet_csv_path = "./inaturalist2019_alphabet_csvs/train/"
 else:
     root_path = "/run/media/hoosiki/WareHouse2/home/mtb/datasets/my_pictures/my_pictures_mtcnnpy_182"
 
@@ -57,17 +68,20 @@ if omniglot_1_folder:
     df['class'] = pd.factorize(df['name'])[0]
 
 elif omniglot_separate_folders:
-    files = glob.glob(root_path+"/*/*/*")
+    files = glob.glob(root_path+"*/*/*")
     print("The number of files: ", len(files))
     for alphabet_dir in os.listdir(root_path):
-        alphabet_path = Path(root_path+alphabet_dir)
+        alphabet_path = root_path+alphabet_dir
+        print("alphabet_path: ", alphabet_path)
         if os.path.isdir(alphabet_path):
             alphabet_df = pd.DataFrame()
-            files = glob.glob(alphabet_path+"/*/*")
-            print("The number of files: ", len(files))
-            for idx, file in enumerate(files):
+            files2 = glob.glob(alphabet_path+"/*/*")
+            #print("files[0] ",files2[0])
+            #print("files[1] ",files2[1])
+            print("The number of files in alphabet ", alphabet_dir, ": ",  len(files2))
+            for idx, file in enumerate(files2):
                 if idx%10000 == 0:
-                    print("[{}/{}]".format(idx, len(files)-1))
+                    print("[{}/{}]".format(idx, len(files2)-1))
                 face_id    = os.path.basename(file).split('.')[0]
                 face_label = os.path.basename(os.path.dirname(file))
                 alphabet_df = alphabet_df.append({'id': face_id, 'name': face_label}, ignore_index = True)
@@ -75,7 +89,7 @@ elif omniglot_separate_folders:
             alphabet_df = alphabet_df.sort_values(by = ['name', 'id']).reset_index(drop = True)
             alphabet_df['class'] = pd.factorize(alphabet_df['name'])[0]
             #dfs[alphabet_dir] = alphabet_df
-            df.to_csv("./omniglot_alphabet_csvs/"+alphabet_dir+".csv", index = False)
+            alphabet_df.to_csv(alphabet_csv_path + alphabet_dir + ".csv", index = False)
 else:
     files = glob.glob(root_path+"/*/*")
 

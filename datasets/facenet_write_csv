@@ -2,6 +2,6 @@
 #SBATCH -p gpu
 #SBATCH -t 100:00:00
 bash $HOME/miniconda3/etc/profile.d/conda.sh
-source activate wsdartscuda9
+source activate pytorch11
 python write_csv_for_making_dataset_omniglot.py
 source deactivate
