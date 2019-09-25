@@ -18,7 +18,7 @@ from data_loader import TripletFaceDataset, get_dataloader
 from pathlib import Path
 from shutil import copyfile
 
-#val==valid==validation
+#val==valid==validation, these terms are used interchangeably.
 #If start-epoch != 0 and/or pure_validation is given as argument, a load_pth_from needs to be defined.
 #If no separate save_dir is defined through "save_pth_to_separate_dir", save_dir = load_pth_from.
 #If save_pth_to_separate_dir is given as argument, a new directory new_dir is created (in the standard way) and the pth file from load_pth_from directory is copied to new_dir. log_dir = new_dir,
@@ -73,7 +73,9 @@ parser.add_argument('--valid-csv-name', default = './datasets/lfw.csv', type = s
 parser.add_argument('--train_torchvision', 
                     help='Use torchvision dataset for training.', action='store_true')
 parser.add_argument('--val_torchvision',
-                    help='Use torchvision dataset for validation.', action='store_true')                   
+                    help='Use torchvision dataset for validation.', action='store_true')
+parser.add_argument('--pure_training',
+                    help='Skip validation for each epoch.', action='store_true')                    
                     
 #global variables
 args    = parser.parse_args()
@@ -138,7 +140,7 @@ def main():
                                                  args.train_dataset_depth,args.val_dataset_depth,
                                                  args.train_torchvision,  args.val_torchvision,
                                                  224,                     224,
-                                                 args.pure_validation)
+                                                 args.pure_validation,    args.pure_training)
         # training and validation
         train_valid(model, optimizer, scheduler, epoch, data_loaders, data_size, t)
         print("duration of epoch ", epoch, ": ", time.time()-t, " seconds")
@@ -149,6 +151,8 @@ def train_valid(model, optimizer, scheduler, epoch, dataloaders, data_size, star
     
     for phase in ['train', 'valid']:
         if args.pure_validation and phase == 'train':
+            continue
+        if args.pure_training and phase == 'valid':
             continue
         labels, distances = [], []
         triplet_loss_sum  = 0.0

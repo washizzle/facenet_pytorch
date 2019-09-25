@@ -28,6 +28,7 @@ class TripletFaceDataset(Dataset):
         self.dataset_name      = os.path.basename(os.path.dirname(root_dir)) #fix
         self.dataset           = None
         if use_torchvision:
+            print("dataset_name: ", self.dataset_name)
             if self.dataset_name == 'mnist':
                 train_val = os.path.basename(root_dir)
                 self.dataset = MNISTColor(os.path.join(root_dir), train='train'==train_val,
@@ -205,7 +206,7 @@ def get_dataloader(train_root_dir,     valid_root_dir,
                    train_dataset_depth,val_dataset_depth,
                    train_torchvision,  val_torchvision,
                    train_input_size,   val_input_size,
-                   pure_validation):
+                   pure_validation,    pure_training):
     data_transforms = {'train': None, 'valid': None}
     if train_torchvision: 
         data_transforms['train'] = transforms.Compose([
@@ -253,16 +254,21 @@ def get_dataloader(train_root_dir,     valid_root_dir,
     #        ])}
     face_dataset = {
         'train': None, 
-        'valid': TripletFaceDataset(root_dir     = valid_root_dir,
+        'valid': None}
+    data_size = {
+        'train': None,
+        'valid': None}
+    
+    if not pure_training:
+        face_dataset['valid'] = TripletFaceDataset(root_dir     = valid_root_dir,
                                      csv_name     = valid_csv_name,
                                      num_triplets = num_valid_triplets,
                                      format       = valid_format,
                                      dataset_depth= val_dataset_depth,
                                      use_torchvision = val_torchvision,
-                                     transform    = data_transforms['valid'])}
-    data_size = {
-        'train': None,
-        'valid': len(face_dataset['valid'])}
+                                     transform    = data_transforms['valid'])
+        data_size['valid'] = len(face_dataset['valid'])
+    
     if not pure_validation:
         face_dataset['train'] = TripletFaceDataset(root_dir     = train_root_dir,
                                      csv_name     = train_csv_name,

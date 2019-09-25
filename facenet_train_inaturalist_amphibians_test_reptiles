@@ -1,0 +1,7 @@
+#!/bin/bash
+#SBATCH -p gpu
+#SBATCH -t 100:00:00
+bash $HOME/miniconda3/etc/profile.d/conda.sh
+source activate pytorch11
+python train.py --train_dataset_depth=3 --val_dataset_depth=3 --train_format=.png --valid_format=.png --valid-root-dir=/lustre2/0/wsdarts/datasets/inaturalist_2019/train/Reptiles/ --train-root-dir=/lustre2/0/wsdarts/datasets/inaturalist_2019/val/Amphibians/ --valid-csv-name=/nfs/home4/mhouben/facenet_pytorch/datasets/inaturalist2019_alphabet_csvs/train/Reptiles.csv --train-csv-name=/nfs/home4/mhouben/facenet_pytorch/datasets/inaturalist2019_alphabet_csvs/val/Amphibians.csv --pure_training
+source deactivate
