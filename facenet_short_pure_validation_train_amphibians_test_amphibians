@@ -1,0 +1,6 @@
+#!/bin/bash
+#SBATCH -p gpu_short
+bash $HOME/miniconda3/etc/profile.d/conda.sh
+source activate pytorch11
+source deactivate
+python train.py --pure_validation --train_format=.png --valid_format=.png --start-epoch=196 --load_pth_from=./log/20190923-110007/ --save_pth_to_separate_dir --valid-root-dir=/lustre2/0/wsdarts/datasets/inaturalist_2019/val/Amphibians/ --valid-csv-name=/nfs/home4/mhouben/facenet_pytorch/datasets/inaturalist2019_alphabet_csvs/val/Amphibians.csv --train_dataset_depth=3 --val_dataset_depth=3 --num-valid-triplets=10 --batch-size=1

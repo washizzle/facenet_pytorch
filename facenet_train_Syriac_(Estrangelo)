@@ -1,0 +1,7 @@
+#!/bin/bash
+#SBATCH -p gpu
+#SBATCH -t 100:00:00
+bash $HOME/miniconda3/etc/profile.d/conda.sh
+source activate pytorch11
+source deactivate
+python train.py --train_format=.png --valid_format=.png --train-root-dir="/lustre2/0/wsdarts/datasets/omniglot_multiple_folders_split/train/Syriac_(Estrangelo)/" --valid-root-dir="/lustre2/0/wsdarts/datasets/omniglot_multiple_folders_split/val/Syriac_(Estrangelo)/" --train-csv-name="/nfs/home4/mhouben/facenet_pytorch/datasets/omniglot_alphabet_csvs/train/Syriac_(Estrangelo).csv" --valid-csv-name="/nfs/home4/mhouben/facenet_pytorch/datasets/omniglot_alphabet_csvs/val/Syriac_(Estrangelo).csv" --train_dataset_depth=1 --val_dataset_depth=1 --num-train-triplets=500

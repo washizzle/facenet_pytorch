@@ -1,0 +1,7 @@
+#!/bin/bash
+#SBATCH -p gpu
+#SBATCH -t 100:00:00
+bash $HOME/miniconda3/etc/profile.d/conda.sh
+source activate pytorch11
+python train.py --pure_validation --train_format=.png --valid_format=.png --start-epoch=196 --load_pth_from=./log/20190923-110007/ --save_pth_to_separate_dir --valid-root-dir=/lustre2/0/wsdarts/datasets/omniglot_1_folder_splits/val/ --valid-csv-name=~/facenet_pytorch/datasets/omniglot_val_1_folder.csv --train_dataset_depth=3 --val_dataset_depth=1
+source deactivate

@@ -1,0 +1,7 @@
+#!/bin/bash
+#SBATCH -p gpu
+#SBATCH -t 1:00:00
+bash $HOME/miniconda3/etc/profile.d/conda.sh
+source activate pytorch11
+source deactivate
+python train.py --pure_validation --start-epoch=134 --train_format=.png --valid_format=.png --load_pth_from=/lustre2/0/wsdarts/facenet_logs/20191011-164309 --save_pth_to_separate_dir --train-root-dir=/lustre2/0/wsdarts/datasets/cifar/train/ --valid-root-dir=/lustre2/0/wsdarts/datasets/cifar/val/ --train-csv-name=/nfs/home4/mhouben/facenet_pytorch/datasets/cifar_train.csv --valid-csv-name=~/facenet_pytorch/datasets/cifar_test.csv --train_dataset_depth=3 --val_dataset_depth=3

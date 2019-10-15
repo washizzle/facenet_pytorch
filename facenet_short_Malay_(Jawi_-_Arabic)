@@ -1,0 +1,7 @@
+#!/bin/bash
+#SBATCH -p gpu
+#SBATCH -t 100:00:00
+bash $HOME/miniconda3/etc/profile.d/conda.sh
+source activate pytorch11
+source deactivate
+python train.py --pure_validation --start-epoch=186 --save_pth_to_separate_dir --load_pth_from=/lustre2/0/wsdarts/facenet_logs/20191010-141752 --train_format=.png --valid_format=.png --train-root-dir="/lustre2/0/wsdarts/datasets/omniglot_multiple_folders_split/train/Malay_(Jawi_-_Arabic)/" --valid-root-dir="/lustre2/0/wsdarts/datasets/omniglot_multiple_folders_split/val/Malay_(Jawi_-_Arabic)/" --train-csv-name="/nfs/home4/mhouben/facenet_pytorch/datasets/omniglot_alphabet_csvs/train/Malay_(Jawi_-_Arabic).csv" --valid-csv-name="/nfs/home4/mhouben/facenet_pytorch/datasets/omniglot_alphabet_csvs/val/Malay_(Jawi_-_Arabic).csv" --train_dataset_depth=1 --val_dataset_depth=1 --num-valid-triplets=10 --batch-size=1

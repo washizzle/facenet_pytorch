@@ -108,7 +108,7 @@ class TripletFaceDataset(Dataset):
     def __getitem__(self, idx):
         keep = {}
         try:
-            print("first idx print: ", idx)
+            #print("first idx print: ", idx)
             anc_id, pos_id, neg_id, pos_class, neg_class, pos_name, neg_name = self.training_triplets[idx]
             
             #anc_img   = os.path.join(self.root_dir, str(pos_name), str(anc_id) + self.format)
@@ -130,7 +130,7 @@ class TripletFaceDataset(Dataset):
                 anc_img   = io.imread(anc_img, plugin='imageio')
                 pos_img   = io.imread(pos_img, plugin='imageio')
                 neg_img   = io.imread(neg_img, plugin='imageio')
-                print("anc_img.shape: ", anc_img.shape)
+                #print("anc_img.shape: ", anc_img.shape)
                 
                 if self.dataset_depth==1:
                     anc_img = cv2.cvtColor(anc_img, cv2.COLOR_GRAY2RGB)
@@ -145,7 +145,7 @@ class TripletFaceDataset(Dataset):
                         neg_img = cv2.cvtColor(neg_img, cv2.COLOR_GRAY2RGB)
             #else if dataset is mnist    
             elif self.dataset_name == 'mnist':
-                print("idx: ", idx)
+                #print("idx: ", idx)
                 #print(", anc_id: ", anc_id)
                 #print(", self.dataset.targets: ", self.dataset.targets)
                 #print(", self.dataset.data: ", self.dataset.data.item())
@@ -180,7 +180,7 @@ class TripletFaceDataset(Dataset):
             
             #print("anc_img: ", anc_img)
             
-            sample = {'anc_img': anc_img, 'pos_img': pos_img, 'neg_img': neg_img, 'pos_class': pos_class, 'neg_class': neg_class}
+            sample = {'anc_id': anc_id, 'pos_id': pos_id, 'neg_id': neg_id, 'anc_img': anc_img, 'pos_img': pos_img, 'neg_img': neg_img, 'pos_class': pos_class, 'neg_class': neg_class}
 
             if not self.use_torchvision and self.transform:
                 sample['anc_img'] = self.transform(sample['anc_img'])

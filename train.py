@@ -17,6 +17,7 @@ from models import FaceNetModel
 from data_loader import TripletFaceDataset, get_dataloader
 from pathlib import Path
 from shutil import copyfile
+import pandas as pd
 
 #val==valid==validation, these terms are used interchangeably.
 #If start-epoch != 0 and/or pure_validation is given as argument, a load_pth_from needs to be defined.
@@ -35,7 +36,7 @@ parser.add_argument('--train_format', type=str,
 parser.add_argument('--valid_format', type=str, 
                     help='Format of images for validation set', default='.jpg')
 parser.add_argument('--logs_base_dir', type=str, 
-                    help='Directory where to write event logs.', default='./log/')
+                    help='Directory where to write event logs.', default='/lustre2/0/wsdarts/facenet_logs/')
 parser.add_argument('--start-epoch', default = 0, type = int, metavar = 'SE',
                     help = 'start epoch (default: 0).')
 parser.add_argument('--load_pth_from', default = './log/test/', type = str,
@@ -75,7 +76,9 @@ parser.add_argument('--train_torchvision',
 parser.add_argument('--val_torchvision',
                     help='Use torchvision dataset for validation.', action='store_true')
 parser.add_argument('--pure_training',
-                    help='Skip validation for each epoch.', action='store_true')                    
+                    help='Skip validation for each epoch.', action='store_true')
+parser.add_argument('--pure_valid_six_time', 
+                    help='run validation six times, one for each omniglot alphabet in the array', action='store_true')                    
                     
 #global variables
 args    = parser.parse_args()
@@ -113,7 +116,7 @@ def main():
     #load model
     model     = FaceNetModel(embedding_size = args.embedding_size, num_classes = args.num_classes).to(device)
     optimizer = optim.Adam(model.parameters(), lr = args.learning_rate)
-    scheduler = lr_scheduler.StepLR(optimizer, step_size = 50, gamma = 0.1)
+    scheduler = lr_scheduler.StepLR(optimizer, step_size = args.learning_rate/4, gamma = 0.1)
     
     if not os.path.isdir(log_dir):  # Create the log directory if it doesn't exist
         os.makedirs(log_dir)
@@ -125,27 +128,59 @@ def main():
     #if args.torchvision_dataset:   #create csv
     #    dataset_path = os.path.join(os.path.expanduser(datasets_path), args.dataset_name)
     #    dataloaders, dataset_sizes, num_classes = load_torchvision_data(args.dataset_name, dataset_path, data_transforms, dataset_depth)
-    
-    for epoch in range(args.start_epoch, num_epochs + args.start_epoch):
-        t = time.time()
-        if not args.pure_validation:
+    array = [
+                {"dir": "/lustre2/0/wsdarts/datasets/omniglot_multiple_folders_split/val/Japanese_(hiragana)/", "csv":"/nfs/home4/mhouben/facenet_pytorch/datasets/omniglot_alphabet_csvs/val/Japanese_(hiragana).csv"},
+                {"dir": "/lustre2/0/wsdarts/datasets/omniglot_multiple_folders_split/val/Japanese_(katakana)/", "csv":"/nfs/home4/mhouben/facenet_pytorch/datasets/omniglot_alphabet_csvs/val/Japanese_(katakana).csv"},
+                {"dir": "/lustre2/0/wsdarts/datasets/omniglot_multiple_folders_split/val/Korean/",              "csv":"/nfs/home4/mhouben/facenet_pytorch/datasets/omniglot_alphabet_csvs/val/Korean.csv"             },
+                {"dir": "/lustre2/0/wsdarts/datasets/omniglot_multiple_folders_split/val/Latin/",               "csv":"/nfs/home4/mhouben/facenet_pytorch/datasets/omniglot_alphabet_csvs/val/Latin.csv"              },
+                {"dir": "/lustre2/0/wsdarts/datasets/omniglot_multiple_folders_split/val/N_Ko/",                "csv":"/nfs/home4/mhouben/facenet_pytorch/datasets/omniglot_alphabet_csvs/val/N_Ko.csv"               },
+                {"dir": "/lustre2/0/wsdarts/datasets/omniglot_multiple_folders_split/val/Greek/",               "csv":"/nfs/home4/mhouben/facenet_pytorch/datasets/omniglot_alphabet_csvs/val/Greek.csv"              }
+    ]
+    if args.pure_valid_six_time:
+        for a in array:
+            for epoch in range(args.start_epoch, num_epochs + args.start_epoch):
+                t = time.time()
+                if not args.pure_validation:
+                    print(80 * '=')
+                    print('Epoch [{}/{}]'.format(epoch, num_epochs + args.start_epoch - 1))
+                # load data (every epoch)
+                print("a[dir]", a["dir"])
+                print("a[csv]", a["csv"])
+                data_loaders, data_size = get_dataloader(args.train_root_dir,     a["dir"],
+                                                         args.train_csv_name,     a["csv"],
+                                                         args.num_train_triplets, args.num_valid_triplets, 
+                                                         args.batch_size,         args.num_workers,
+                                                         args.train_format,       args.valid_format,
+                                                         args.train_dataset_depth,args.val_dataset_depth,
+                                                         args.train_torchvision,  args.val_torchvision,
+                                                         224,                     224,
+                                                         args.pure_validation,    args.pure_training)
+                # training and validation
+                train_valid(model, optimizer, scheduler, epoch, data_loaders, data_size, t)
+                print("duration of epoch ", epoch, ": ", time.time()-t, " seconds")
             print(80 * '=')
-            print('Epoch [{}/{}]'.format(epoch, num_epochs + args.start_epoch - 1))
-        # load data (every epoch)
-        data_loaders, data_size = get_dataloader(args.train_root_dir,     args.valid_root_dir,
-                                                 args.train_csv_name,     args.valid_csv_name,
-                                                 args.num_train_triplets, args.num_valid_triplets,   
-                                                 args.batch_size,         args.num_workers,
-                                                 args.train_format,       args.valid_format,
-                                                 args.train_dataset_depth,args.val_dataset_depth,
-                                                 args.train_torchvision,  args.val_torchvision,
-                                                 224,                     224,
-                                                 args.pure_validation,    args.pure_training)
-        # training and validation
-        train_valid(model, optimizer, scheduler, epoch, data_loaders, data_size, t)
-        print("duration of epoch ", epoch, ": ", time.time()-t, " seconds")
-    print(80 * '=')
-    print("End date and time: ", time.asctime(time.localtime(time.time())))
+            print("End date and time: ", time.asctime(time.localtime(time.time())))
+    else:
+        for epoch in range(args.start_epoch, num_epochs + args.start_epoch):
+            t = time.time()
+            if not args.pure_validation:
+                print(80 * '=')
+                print('Epoch [{}/{}]'.format(epoch, num_epochs + args.start_epoch - 1))
+            # load data (every epoch)
+            data_loaders, data_size = get_dataloader(args.train_root_dir,     args.valid_root_dir,
+                                                     args.train_csv_name,     args.valid_csv_name,
+                                                     args.num_train_triplets, args.num_valid_triplets,   
+                                                     args.batch_size,         args.num_workers,
+                                                     args.train_format,       args.valid_format,
+                                                     args.train_dataset_depth,args.val_dataset_depth,
+                                                     args.train_torchvision,  args.val_torchvision,
+                                                     224,                     224,
+                                                     args.pure_validation,    args.pure_training)
+            # training and validation
+            train_valid(model, optimizer, scheduler, epoch, data_loaders, data_size, t)
+            print("duration of epoch ", epoch, ": ", time.time()-t, " seconds")
+        print(80 * '=')
+        print("End date and time: ", time.asctime(time.localtime(time.time())))
     
 def train_valid(model, optimizer, scheduler, epoch, dataloaders, data_size, start_time):
     
@@ -180,7 +215,22 @@ def train_valid(model, optimizer, scheduler, epoch, dataloaders, data_size, star
                     
                         # anc_embed, pos_embed and neg_embed are encoding(embedding) of image
                         anc_embed, pos_embed, neg_embed = model(anc_img), model(pos_img), model(neg_img)
-                    
+                        #for i in anc_embed:
+                        #    print(i.item())
+                        if args.num_valid_triplets <= 100:
+                            anc_embed_cpu = anc_embed.cpu()
+                            pos_embed_cpu = pos_embed.cpu()
+                            neg_embed_cpu = neg_embed.cpu()
+                            pos_cls_cpu = pos_cls.cpu()
+                            neg_cls_cpu = neg_cls.cpu()
+                            pd.DataFrame([t.numpy() for t in anc_embed_cpu]).to_csv("./embeddings.csv", mode='a', header=None)
+                            pd.DataFrame([t.numpy() for t in pos_embed_cpu]).to_csv("./embeddings.csv", mode='a', header=None)
+                            pd.DataFrame([t.numpy() for t in neg_embed_cpu]).to_csv("./embeddings.csv", mode='a', header=None)
+                            pd.DataFrame({'type': "anc", 'id': batch_sample['anc_id'], 'class': pos_cls_cpu, 'train_set': args.train_csv_name.split('.')[0], 'val_set': args.valid_csv_name.split('.')[0]}).to_csv("./embeddings_info.csv", mode='a', header=None)
+                            pd.DataFrame({'type': "pos", 'id': batch_sample['pos_id'], 'class': pos_cls_cpu, 'train_set': args.train_csv_name.split('.')[0], 'val_set': args.valid_csv_name.split('.')[0]}).to_csv("./embeddings_info.csv", mode='a', header=None)
+                            pd.DataFrame({'type': "neg", 'id': batch_sample['neg_id'], 'class': pos_cls_cpu, 'train_set': args.train_csv_name.split('.')[0], 'val_set': args.valid_csv_name.split('.')[0]}).to_csv("./embeddings_info.csv", mode='a', header=None)
+                            
+                        #print([t.size() for t in anc_embed])
                         # choose the hard negatives only for "training"
                         pos_dist = l2_dist.forward(anc_embed, pos_embed)
                         neg_dist = l2_dist.forward(anc_embed, neg_embed)

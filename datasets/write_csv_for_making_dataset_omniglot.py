@@ -12,14 +12,16 @@ from pathlib import Path
 #creation of csvs, which is why we made it possible to choose whether we are dealing with such a dataset 
 #or not
 
-which_dataset = 9
+which_dataset = 14
+# the label is in the name of the file itself
+name_within_file = True
 # omniglot, all images are put into 1 folder
 omniglot_1_folder = False
 # (UNTESTED) omniglot, separate (alphabet) folders. Having this on True while omniglot_1_folder is also 
 #True causes it to behave as if omniglot_separate_folders = False.         
-omniglot_separate_folders = True
+omniglot_separate_folders = False
 #dataset_name: only used when omniglot_separate_folders = true and omniglot_1_folder = false
-       
+
 alphabet_csv_path = ""
 if   which_dataset == 0:
     root_path = "~/facenet_pytorch/datasets/vggface2_train/aligned/"
@@ -44,6 +46,20 @@ elif which_dataset == 8:
 elif which_dataset == 9:
     root_path = "/scratch/nodespecific/int1/mhouben/inaturalist_2019/train/"
     alphabet_csv_path = "./inaturalist2019_alphabet_csvs/train/"
+elif which_dataset == 10:
+    root_path = "/scratch/nodespecific/int1/mhouben/CASIA_aligned/train/"
+elif which_dataset == 11:
+    root_path = "/scratch/nodespecific/int1/mhouben/CASIA_aligned/val/"
+elif which_dataset == 12:
+    root_path = "/lustre2/0/wsdarts/jpg_datasets/omniglot_1_folder_splits/train/"
+    alphabet_csv_path = '/nfs/home4/mhouben/facenet_pytorch/datasets/omniglot_alphabet_csvs/train/'
+elif which_dataset == 13:
+    root_path = "/lustre2/0/wsdarts/jpg_datasets/omniglot_1_folder_splits/val/"
+    alphabet_csv_path = '/nfs/home4/mhouben/facenet_pytorch/datasets/omniglot_alphabet_csvs/val/'
+elif which_dataset == 14:
+    root_path = "/scratch/nodespecific/int1/mhouben/cifar/train/"
+elif which_dataset == 15:
+    root_path = "/scratch/nodespecific/int1/mhouben/cifar/test/"
 else:
     root_path = "/run/media/hoosiki/WareHouse2/home/mtb/datasets/my_pictures/my_pictures_mtcnnpy_182"
 
@@ -90,6 +106,21 @@ elif omniglot_separate_folders:
             alphabet_df['class'] = pd.factorize(alphabet_df['name'])[0]
             #dfs[alphabet_dir] = alphabet_df
             alphabet_df.to_csv(alphabet_csv_path + alphabet_dir + ".csv", index = False)
+elif name_within_file:
+    files = glob.glob(root_path+"*")
+
+    print("The number of files: ", len(files))
+    for idx, file in enumerate(files):
+        if idx%10000 == 0:
+            print("[{}/{}]".format(idx, len(files)-1))
+        face_id    = os.path.basename(file).split('.')[0]
+        face_label = face_id.split('_')[1]
+        print("face_label",face_label)
+        df = df.append({'id': face_id, 'name': face_label}, ignore_index = True)
+
+    df = df.sort_values(by = ['name', 'id']).reset_index(drop = True)
+    df['class'] = pd.factorize(df['name'])[0]
+    
 else:
     files = glob.glob(root_path+"/*/*")
 
@@ -119,6 +150,14 @@ elif which_dataset == 5:
     df.to_csv("omniglot_train_1_folder.csv", index = False)
 elif which_dataset == 6:
     df.to_csv("omniglot_val_1_folder.csv", index = False)
+elif which_dataset == 10:
+    df.to_csv("CASIA_train3.csv", index = False)
+elif which_dataset == 11:
+    df.to_csv("CASIA_test3.csv", index = False)
+elif which_dataset == 14:
+    df.to_csv("cifar_train.csv", index = False)
+elif which_dataset == 15:
+    df.to_csv("cifar_test.csv", index = False)    
 else:
     df.to_csv("my_pictures.csv", index = False)
 

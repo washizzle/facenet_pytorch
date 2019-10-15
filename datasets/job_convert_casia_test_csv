@@ -1,0 +1,6 @@
+#!/bin/bash
+#SBATCH -p gpu_short
+bash $HOME/miniconda3/etc/profile.d/conda.sh
+source activate pytorch11
+python convert_CASIA_test_csv.py
+source deactivate
